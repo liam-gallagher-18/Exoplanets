@@ -1,0 +1,48 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import rebound
+
+# Define the grid
+# Starting 'a' at 0.1 to avoid division by zero in the integrator
+a_range = np.arange(0.1, 100, 1) 
+e_range = np.arange(0, 1.2, 0.1)
+A, E = np.meshgrid(a_range, e_range)
+MEGNO = np.zeros_like(A)
+
+def calculate_megno(semimajor_axis, eccentricity):
+    sim = rebound.Simulation()
+    sim.integrator = "whfast"
+    sim.dt = 0.05 # Timestep relative to orbital period
+    
+    # Add Gliese 65 A (Primary Mass ~0.12 Solar Masses)
+    sim.add(m=0.12) 
+    
+    # Add the test particle (exoplanet)
+    sim.add(a=semimajor_axis, e=eccentricity)
+    
+    # Move to Center of Momentum frame and add variational particles for MEGNO
+    sim.move_to_com()
+    sim.init_megno()
+    
+    # Integrate for 5,000 orbital periods
+    integration_time = 5000 * 2 * np.pi * np.sqrt(semimajor_axis**3 / 0.12)
+    try:
+        sim.integrate(integration_time)
+        return sim.calculate_megno()
+    except:
+        return 10.0 # Return high value for ejected/unstable orbits
+
+# Populate the grid
+for i in range(len(e_range)):
+    for j in range(len(a_range)):
+        MEGNO[i, j] = calculate_megno(A[i,j], E[i,j])
+
+# Plotting
+plt.figure(figsize=(10, 6))
+plt.imshow(MEGNO, extent=[0.1, 100, 0, 0.9], origin='lower', 
+           cmap='viridis', aspect='auto', vmin=1.9, vmax=4.0)
+plt.colorbar(label='MEGNO (Y)')
+plt.xlabel('Semimajor Axis (AU)')
+plt.ylabel('Eccentricity (e)')
+plt.title("Exoplanet Stability Plot, Gliese 65 (Stability at Y = 2)")
+plt.show()
