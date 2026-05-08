@@ -3,10 +3,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import rebound
 
+# Adjust solar mass of the star you want to model:
+m = 1
+
 # Define the grid
 a_max = 1.1 # maximum semimajor axis to consider (AU)
 a_range = np.linspace(0.1, 1.1, 25) # Start at 0.1 to avoid division by zero in the integrator
-e_range = np.linspace(0, 0.9999, 25) # End before 1 -- integrator cannot handle non-elliptical orbits
+e_range = np.linspace(0, 0.9, 25) # End before 1 -- integrator cannot handle non-elliptical orbits
 A, E = np.meshgrid(a_range, e_range)
 MEGNO = np.zeros_like(A)
 
@@ -14,8 +17,8 @@ def calculate_megno(semimajor_axis, eccentricity):
     sim = rebound.Simulation()
     sim.integrator = "whfast"
     
-    # Add Star: Gliese 65 A (Primary Mass ~0.12 Solar Masses)
-    sim.add(m=0.12) 
+    # Add Star
+    sim.add(m=m) 
     
     # Add the test particle (exoplanet)
     sim.add(a=semimajor_axis, e=eccentricity)
@@ -26,7 +29,7 @@ def calculate_megno(semimajor_axis, eccentricity):
     
     # Integrate
     num_orbits = 500
-    orbital_period  = 2 * np.pi * np.sqrt(semimajor_axis**3 / 0.12)
+    orbital_period  = 2 * np.pi * np.sqrt(semimajor_axis**3 / m)
     sim.dt = 0.05 * orbital_period
     try:
         sim.integrate(num_orbits * orbital_period)
@@ -46,7 +49,7 @@ plt.imshow(MEGNO, extent=[0.1, a_max, 0, 1], origin='lower',
 plt.colorbar(label='MEGNO (Y)')
 plt.xlabel('Semimajor Axis (AU)')
 plt.ylabel('Eccentricity (e)')
-plt.title("Exoplanet Stability Plot, Gliese 65 (Stability at Y = 2)")
+plt.title("Exoplanet Stability Plot, Sun (Stability at Y < 2)")
 
 plt.savefig('stability_plot.png')
 print("Plot saved as stability_plot.png")
